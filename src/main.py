@@ -1,19 +1,13 @@
-import redis
 import json
 from Blockchain import Blockchain
+from Transaction import Transaction
+from Block import Block
 
 def run():
-    storage = redis.Redis(host="localhost", port=6379, db=0)
     blockchain = Blockchain()
-    blockchain.add_block({'amount': 1})
-    blockchain.add_block({'amount': 2})
-    blockchain.add_block({'amount': 3})
-    blockchain.add_block({'amount': 4})
-
-    for block in blockchain.chain:
-        storage.set('block_{}'.format(block.index), block.serialize())
-        print(storage.get('block_{}'.format(block.index)).decode())
-
+    blockchain.new_transaction(Transaction('from', 'to', 3))
+    blockchain.add_block()
+    print(blockchain.__str__)
 
 
 if __name__ == "__main__":
