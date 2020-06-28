@@ -1,4 +1,4 @@
-class Transaction():
+class Transaction:
     def __init__(self, sender, recipient, amount: int):
         self.sender = sender
         self.recipient = recipient
