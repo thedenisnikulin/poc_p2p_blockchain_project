@@ -1,27 +1,27 @@
+from typing import List
 import threading
 import socket
 import sys
-from typing import Union
 import config
 
 
-# while 1:
-#     client, address = sock.accept()
-#     print(f'connected to {address}')
-#     msg = client.recv(1024)
-#     print(msg.decode())
-
 class Server:
-    def __init__(self):
+    def __init__(self, host, port):
+        # initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind((config.SERVER_HOST, config.SERVER_PORT))
+        # bind host and port to server and run it
+        self.socket.bind((host, port))
         self.socket.listen(5)
 
+        # address in this format: ('127.0.0.1', 1234)
         self.address = self.socket.getsockname()
         print(f'running on {self.address}')
-        print(self.socket.getsockname())
 
     def run(self):
+        """
+        Connect peer to the server, run thread for
+        listening to peers to receive some data
+        """
         while 1:
             peer, address = self.socket.accept()
             print(f'Peer connected: {address}')
@@ -30,6 +30,11 @@ class Server:
             thread.start()
 
     def __listen_to_peer(self, peer: socket.socket, address: int):
+        """
+        Receive peers' messages
+        :param peer: peer that comes from socket.accept()
+        :param address: address that comes from socket.accept()
+        """
         while 1:
             try:
                 msg = peer.recv(1024)
@@ -38,11 +43,10 @@ class Server:
                 self.socket.close()
                 sys.exit()
 
-
-class PeerTracker:
-    peers = []
+    def close(self):
+        self.socket.close()
 
 
 if __name__ == '__main__':
-    server = Server()
+    server = Server(config.SERVER_HOST, config.SERVER_PORT)
     server.run()
