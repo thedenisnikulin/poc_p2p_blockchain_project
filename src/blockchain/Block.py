@@ -2,7 +2,7 @@ from hashlib import sha256
 import json
 from datetime import datetime
 from typing import List
-from .Transaction import Transaction
+from blockchain.Transaction import Transaction
 
 
 class Block:
@@ -26,6 +26,6 @@ class Block:
             (str(self.data) + self.previous_hash + str(self.timestamp) + str(self.nonce)).encode()).hexdigest()
 
     def mine(self, difficulty: int):
-        zeros = ''.join(['0' for zeros in range(0, difficulty)])
-        while (self.get_hash()[0: difficulty] != zeros):
+        zeros = ''.join(['0' for o in range(0, difficulty)])
+        while self.get_hash()[0: difficulty] != zeros:
             self.nonce += 1

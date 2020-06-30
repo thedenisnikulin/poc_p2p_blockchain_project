@@ -1,6 +1,6 @@
 from typing import List
-from .Block import Block
-from .Transaction import Transaction
+from blockchain.Block import Block
+from blockchain.Transaction import Transaction
 
 
 class Blockchain:
