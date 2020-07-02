@@ -5,13 +5,14 @@ import pickle
 # local
 import config
 from server import Server
-from peer import Peer
+from typing import Set
 
 
-class Client(Peer):
+class Client():
     def __init__(self):
-        super().__init__()
         print('Role: Client')
+        self.peers: Set = set()
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP
         # connect to the current server
         self.socket.connect((config.SERVER_ADDR, config.SERVER_PORT))
@@ -21,17 +22,14 @@ class Client(Peer):
         self.address = self.socket.getsockname()
         self.peers.add(self.address)
 
-    def receive(self):
-        d = None  # data ro receive
-        while d is None:
-            print(f'receive loop\ni\'m {self.address}')
-            d, addr = self.socket.recvfrom(4096)  # 4096 because I saw that on stack overflow, lol
-            print(f'from {addr}')
-            if d != b'':
-                print(d)
-                d = pickle.loads(d)
-                print(f'{d}, of type {type(d)}')
-        return d
+        # update peers received from server
+        self.update_peers()
+
+    def update_peers(self):
+        d = self.socket.recv(config.BUFF_SIZE)  # 4096 because I saw that on stack overflow, lol
+        d = pickle.loads(d)
+        self.peers.update(d)
+        print(self.peers)
 
     def send(self, data_to_send):
         """
@@ -56,6 +54,12 @@ class Client(Peer):
             self.socket.close()
             sys.exit()
 
+    @property
+    def __str__(self):
+        return ('-' * 4 + 'peers' + 4 * '-' + '\n'
+                + ''.join([str(p) + '\n' for p in self.peers])
+                + 13 * '-' + '\n')
+
 
 if __name__ == '__main__':
     while 1:
@@ -70,7 +74,8 @@ if __name__ == '__main__':
 
         try:
             client = Client()
-            data = client.receive()
+            client.start_execution()
+            break
             # client.update_peers(data)
             # client.broadcast(client.peers)
             # client.start_execution()

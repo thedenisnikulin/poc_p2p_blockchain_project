@@ -2,20 +2,22 @@ import sys
 import socket
 import threading
 import pickle
-from typing import List
+from typing import List, Set
 # local
 import config
-from peer import Peer
 
 
-class Server(Peer):
+class Server():
     def __init__(self, addr, port):
-        super().__init__()
+        self.peers: Set = set()
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
         print('Role: Server')
         # initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP
         # bind host and port to server and run it
         self.socket.bind((addr, port))
         self.socket.listen(5)
+        self.connections: List[socket.socket] = []
 
         # address in this format: ('127.0.0.1', 1234)
         self.address = self.socket.getsockname()
@@ -28,11 +30,13 @@ class Server(Peer):
         listening to peers to receive some data
         """
         while 1:
-            peer, address = self.socket.accept()
+            conn, address = self.socket.accept()
+            self.connections.append(conn)
             self.peers.add(address)
-            # send list of peers to every peer
+            # send peers to every client
+            self.broadcast(self.peers)
             print(f'Peer connected: {address}')
-            thread = threading.Thread(target=self.__listen_to_peer, args=(peer, address))
+            thread = threading.Thread(target=self.__listen_to_peer, args=(conn, address))
             thread.daemon = True
             thread.start()
 
@@ -42,7 +46,6 @@ class Server(Peer):
         :param peer: peer that comes from socket.accept()
         :param address: address that comes from socket.accept()
         """
-        self.broadcast(self.peers)
         while 1:
             try:
                 msg = peer.recv(1024)
@@ -53,6 +56,12 @@ class Server(Peer):
             except ConnectionResetError:
                 print(f'Peer disconnected: {address}')
                 break
+
+    def broadcast(self, data):
+        print(f'data to send: {data}')
+        d = pickle.dumps(data)
+        for conn in self.connections:
+            conn.send(d)
 
     def close(self):
         self.socket.close()
