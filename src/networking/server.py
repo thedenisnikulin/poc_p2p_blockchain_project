@@ -1,20 +1,25 @@
-from typing import List
-import threading
-import socket
 import sys
+import socket
+import threading
+import pickle
+from typing import List
+# local
 import config
+from peer import Peer
 
 
-class Server:
-    def __init__(self, host, port):
+class Server(Peer):
+    def __init__(self, addr, port):
+        super().__init__()
+        print('Role: Server')
         # initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # bind host and port to server and run it
-        self.socket.bind((host, port))
+        self.socket.bind((addr, port))
         self.socket.listen(5)
 
         # address in this format: ('127.0.0.1', 1234)
         self.address = self.socket.getsockname()
+        self.peers.add(self.address)
         print(f'running on {self.address}')
 
     def run(self):
@@ -24,6 +29,8 @@ class Server:
         """
         while 1:
             peer, address = self.socket.accept()
+            self.peers.add(address)
+            # send list of peers to every peer
             print(f'Peer connected: {address}')
             thread = threading.Thread(target=self.__listen_to_peer, args=(peer, address))
             thread.daemon = True
@@ -31,10 +38,11 @@ class Server:
 
     def __listen_to_peer(self, peer: socket.socket, address: int):
         """
-        Receive peers' messages
+        Receive data from peers
         :param peer: peer that comes from socket.accept()
         :param address: address that comes from socket.accept()
         """
+        self.broadcast(self.peers)
         while 1:
             try:
                 msg = peer.recv(1024)
@@ -42,11 +50,9 @@ class Server:
             except KeyboardInterrupt:
                 self.socket.close()
                 sys.exit()
+            except ConnectionResetError:
+                print(f'Peer disconnected: {address}')
+                break
 
     def close(self):
         self.socket.close()
-
-
-if __name__ == '__main__':
-    server = Server(config.SERVER_HOST, config.SERVER_PORT)
-    server.run()
