@@ -2,9 +2,15 @@ import sys
 import socket
 import pickle
 import threading
+from typing import Set, Tuple
 # local
 import config
-from typing import Set, Tuple
+
+actions = 6*"-" + "Actions" + "-"*6 + "\n" + \
+            "[0] Get chain\n" + \
+            "[1] New transaction\n" + \
+            "[2] Mine block\n" + \
+          6*"-" + "-------" + "-"*6 + "\n"
 
 
 class Client:
@@ -25,37 +31,45 @@ class Client:
         self.address = self.socket.getsockname()
         self.peers.add(self.address)
         print(f'Role: Client \nAddress: {self.address}')
-        # # FIXME: how it works lol
-        # sync_t = threading.Thread(target=self.sync_peers)
-        # sync_t.daemon = True
-        # sync_t.start()
-        # listen_t = threading.Thread(target=self.__listen_to_input())
-        # listen_t.daemon = True
-        # listen_t.start()
 
-    def __listen_to_input(self):
+        self.sync_peers()
+        self.__listen_to_user_input()
+
+    def __listen_to_user_input(self):
         print('listen to input')
         """
         Listen to data to send to the server (infinite loop)
         """
-        th = threading.Thread(target=self.receive)
-        th.daemon = True
-        th.start()
         try:
+            th = threading.Thread(target=self.__listen_to_server)
+            th.daemon = True
+            th.start()
             while 1:
                 data = input('data: ')
-                if data == '':
-                    break
+                # if data == '':
+                #     break
                 self.send(data)
         # exit from the loop
         except KeyboardInterrupt:
             self.socket.close()
             sys.exit()
+        except ConnectionResetError:
+            print('WIN ERROR OCCURED')
 
-    def receive(self):
-        print('rec')
-        d = self.socket.recv(4096)
-        print(pickle.loads(d))
+    def __listen_to_server(self):
+        print('receive')
+        while 1:
+            try:
+                d = self.socket.recv(4096)
+                d = pickle.loads(d)
+                print(d)
+            except KeyboardInterrupt:
+                self.socket.close()
+                sys.exit()
+            except ConnectionResetError:
+                #
+                print('Connection reset. Press [ Enter ] to continue.')
+                break
 
     def sync_peers(self):
         """
@@ -65,13 +79,11 @@ class Client:
         d = self.socket.recv(config.BUFF_SIZE)
         d = pickle.loads(d)
         self.peers.update(d)
-        print(self.peers)
-        print('end sync')
+        print(f'synced{self.peers}')
 
     def send(self, data_to_send):
         """
-        Send data to the current server
-        :param data_to_send: some data to send
+        Send data to the server
         """
         self.socket.send(bytes(data_to_send, 'utf-8'))
 
