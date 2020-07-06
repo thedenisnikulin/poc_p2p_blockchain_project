@@ -15,6 +15,8 @@ class Server:
         self.peers: Set = set()
         # initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # allow connecting to recently closed addresses
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.address = ()
 
     def connect(self, address: Tuple[str, int]):
@@ -91,6 +93,7 @@ class Server:
         """
         with open('./server_tracker.txt', 'r') as file:
             addr = file.readline().split(' ')
+            print(f'FROM GET {(addr[0], int(addr[1]))}')
             if len(addr) != 2:
                 raise Exception('No address found in server_tracker.txt.')
             return addr[0], int(addr[1])
