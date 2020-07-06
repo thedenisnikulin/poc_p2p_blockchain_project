@@ -8,19 +8,24 @@ import config
 
 
 class Server:
-    def __init__(self, address: Tuple[str, int]):
+    def __init__(self):
         # connections - clients connected to the server
         self.connections: List[socket.socket] = []
         # peers - addresses of each peer in the network
         self.peers: Set = set()
         # initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.address = ()
+
+    def connect(self, address: Tuple[str, int]):
+        print('Connecting server...')
         # bind host and port to server and listen
-        self.address = address # get_address()
+        self.address = address  # get_current_ip_address()
         # self.address = Server.get_address()
         self.socket.bind(self.address)
         self.socket.listen(5)
         self.set_address(self.address)
+        self.peers.add(self.address)
 
         # address in this format: ('127.0.0.1', 1234)
         # add server's address to peers
@@ -33,9 +38,9 @@ class Server:
         listening to peers to receive some data
         """
         while 1:
-            print('run')
+            print('Running server...')
             conn, address = self.socket.accept()
-            print('got client')
+            print('Server: got client')
             # add client to connections and peers
             self.connections.append(conn)
             self.peers.add(address)
@@ -52,7 +57,7 @@ class Server:
         :param conn: connection that comes from socket.accept() (when client connected)
         :param address: address that comes from socket.accept()
         """
-        print('listen to peer')
+        print('Server: Listening to client...')
         while 1:
             try:
                 msg = conn.recv(config.BUFF_SIZE)

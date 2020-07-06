@@ -25,7 +25,7 @@ class Client:
         self.address = ()
 
     def connect(self, server_address: Tuple[str, int]):
-        print(f'connect')
+        print(f'Client is connecting...')
         # connect to server
         self.socket.connect(server_address)
         self.address = self.socket.getsockname()
@@ -36,7 +36,7 @@ class Client:
         self.__listen_to_user_input()
 
     def __listen_to_user_input(self):
-        print('listen to input')
+        print('Client is listening to input...')
         """
         Listen to data to send to the server (infinite loop)
         """
@@ -53,13 +53,12 @@ class Client:
         except KeyboardInterrupt:
             self.socket.close()
             sys.exit()
-        except ConnectionResetError:
-            print('WIN ERROR OCCURED')
 
     def __listen_to_server(self):
-        print('receive')
+        print('Client is ready to receive')
         while 1:
             try:
+                # d - data that client receives
                 d = self.socket.recv(4096)
                 d = pickle.loads(d)
                 print(d)
@@ -67,7 +66,6 @@ class Client:
                 self.socket.close()
                 sys.exit()
             except ConnectionResetError:
-                #
                 print('Connection reset. Press [ Enter ] to continue.')
                 break
 
@@ -75,7 +73,7 @@ class Client:
         """
         Update local peers by ones received from server = synchronize
         """
-        print('sync')
+        print('Syncing peers...')
         d = self.socket.recv(config.BUFF_SIZE)
         d = pickle.loads(d)
         self.peers.update(d)
