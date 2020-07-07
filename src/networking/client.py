@@ -5,12 +5,8 @@ import threading
 from typing import Set, Tuple
 # local
 import config
-
-actions = 6*"-" + "Actions" + "-"*6 + "\n" + \
-            "[0] Get chain\n" + \
-            "[1] New transaction\n" + \
-            "[2] Mine block\n" + \
-          6*"-" + "-------" + "-"*6 + "\n"
+from blockchain.Blockchain import Blockchain
+from blockchain.cli_interface import use_blockchain
 
 
 class Client:
@@ -23,6 +19,9 @@ class Client:
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # address in such format: ("1.1.1.1", 1111)
         self.address = ()
+        self.server_address = ()
+        # init blockchain
+        self.blockchain = Blockchain()
 
     def connect(self, server_address: Tuple[str, int]):
         print(f'Client is connecting...')
@@ -30,8 +29,11 @@ class Client:
         self.socket.connect(server_address)
         self.address = self.socket.getsockname()
         self.peers.add(self.address)
+        self.server_address = self.socket.getpeername()
         print(f'Role: Client \nAddress: {self.address}')
+        print(f'server is on {self.server_address}')
 
+        self.blockchain.generate_genesis_block()
         self.sync_peers()
         self.__listen_to_user_input()
 
@@ -44,12 +46,10 @@ class Client:
             th = threading.Thread(target=self.__listen_to_server)
             th.daemon = True
             th.start()
-            while 1:
-                data = input('data: ')
-                # if data == '':
-                #     break
-                self.send(data)
-        # exit from the loop
+            use_blockchain(self.socket,
+                           self.blockchain,
+                           set([p for p in self.peers if p != self.address and p != self.server_address]))
+        # exit
         except KeyboardInterrupt:
             self.socket.close()
             sys.exit()
@@ -85,8 +85,23 @@ class Client:
         """
         self.socket.send(bytes(data_to_send, 'utf-8'))
 
-    @property
-    def __str__(self):
-        return ('-' * 4 + 'peers' + 4 * '-' + '\n'
-                + ''.join([str(p) + '\n' for p in self.peers])
-                + 13 * '-' + '\n')
+    def close_connection(self):
+        self.socket.close()
+
+
+class Peer(Client):
+    """
+    A simple client.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.blockchain: Blockchain
+
+    def reset_connection(self):
+        """
+        Reset peer connection - reinitialize.
+        """
+        data = (self.peers,)
+        super().__init__()
+        self.peers = data[0]

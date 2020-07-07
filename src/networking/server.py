@@ -4,6 +4,8 @@ import threading
 import pickle
 from typing import List, Set, Tuple
 # local
+from client import Client
+from blockchain.Blockchain import Blockchain
 import config
 
 
@@ -106,6 +108,19 @@ class Server:
         """
         with open('./server_tracker.txt', 'w') as file:
             file.write(f'{addr[0]} {addr[1]}')
+
+
+class SuperPeer:
+    """
+    Server + client. Manages connections.
+    """
+    def __init__(self):
+        self.server = Server()
+        self.client = Client()
+
+    def close_connections(self):
+        self.client.socket.close()
+        self.server.close()
 
 
 def get_current_ip_address() -> Tuple[str, int]:

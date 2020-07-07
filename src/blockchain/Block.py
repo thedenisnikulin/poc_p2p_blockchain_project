@@ -1,7 +1,9 @@
-from hashlib import sha256
+import sys
 import json
+from hashlib import sha256
 from datetime import datetime
 from typing import List
+# local
 from blockchain.Transaction import Transaction
 
 
@@ -29,3 +31,6 @@ class Block:
         zeros = ''.join(['0' for o in range(0, difficulty)])
         while self.get_hash()[0: difficulty] != zeros:
             self.nonce += 1
+            sys.stdout.flush()
+            sys.stdout.write(f'\r{self.get_hash()}')
+        print('\n')

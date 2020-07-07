@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Tuple, Set
+# local
 from blockchain.Block import Block
 from blockchain.Transaction import Transaction
 
@@ -9,10 +10,15 @@ class Blockchain:
         self.pending_transactions: List[Transaction] = []
         self.difficulty = 4
 
+    def generate_genesis_block(self):
         # add genesis block
-        genesis_block = Block([], 'genesis')
-        genesis_block.mine(self.difficulty)
-        self.chain.append(genesis_block)
+        if len(self.chain) == 0:
+            print('Mining Block #0...')
+            genesis = Block([], 'genesis')
+            genesis.mine(self.difficulty)
+            self.chain.append(genesis)
+        else:
+            raise Exception('Tried to generate genesis block when it is not necessary')
 
     def is_valid(self, chain_to_validate: List[Block] = None):
         chain = self.chain if chain_to_validate is None else chain_to_validate
@@ -28,6 +34,7 @@ class Blockchain:
             [t.serialized for t in self.pending_transactions],
             self.chain[-1].get_hash()
         )
+        print(f'Mining block #{len(self.chain)}...')
         new_block.mine(self.difficulty)
         self.chain.append(new_block)
         self.pending_transactions = []
@@ -44,12 +51,11 @@ class Blockchain:
 
     @property
     def __str__(self):
-        return ''.join([('-----------------------\n' +
-                         'index: {}\n' +
-                         'data: {}\n' +
-                         'hash: {}\n' +
-                         'previous_hash: {}\n' +
-                         'timestamp: {}\n' +
-                         'nonce: {}\n').format(self.chain.index(block), block.data, block.get_hash(),
-                                               block.previous_hash, block.timestamp, block.nonce) for block in
-                        self.chain])
+        return ''.join([(
+            14 * '-' + f'Block #{self.chain.index(block)}' + '-' * 14 + '\n' +
+             f'data: {block.data}\n' +
+             f'hash: {block.get_hash()}\n' +
+             f'previous_hash: {block.previous_hash}\n' +
+             f'timestamp: {block.timestamp}\n' +
+             f'nonce: {block.nonce}\n'
+        ) for block in self.chain])
