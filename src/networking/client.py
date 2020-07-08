@@ -18,9 +18,9 @@ class Client:
         # allow connecting to recently closed addresses
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # address in such format: ("1.1.1.1", 1111)
-        self.address = ()
+        self.address: Tuple[str, int] = ()
         self.server_address = ()
-        # init blockchain
+        # initialize blockchain
         self.blockchain = Blockchain()
 
     def connect(self, server_address: Tuple[str, int]):
@@ -28,40 +28,56 @@ class Client:
         # connect to server
         self.socket.connect(server_address)
         self.address = self.socket.getsockname()
-        self.peers.add(self.address)
         self.server_address = self.socket.getpeername()
+        self.peers.add(self.address)
         print(f'Role: Client \nAddress: {self.address}')
-        print(f'server is on {self.server_address}')
 
         self.blockchain.generate_genesis_block()
-        self.sync_peers()
+        th = threading.Thread(target=self.__listen_to_server)
+        th.daemon = True
+        th.start()
         self.__listen_to_user_input()
 
     def __listen_to_user_input(self):
-        print('Client is listening to input...')
+        print('clis_i')
         """
         Listen to data to send to the server (infinite loop)
         """
         try:
-            th = threading.Thread(target=self.__listen_to_server)
-            th.daemon = True
-            th.start()
-            use_blockchain(self.socket,
-                           self.blockchain,
-                           set([p for p in self.peers if p != self.address and p != self.server_address]))
-        # exit
+            while 1:
+                # FIXME: when new peers get received, they are passed to use_blockchain only after an iteration
+                use_blockchain(
+                    self.blockchain,
+                    self.address,
+                    set([p for p in self.peers
+                        if p != self.address and p != self.server_address])
+                )
+                self.send()
+        # exit from the loop
         except KeyboardInterrupt:
             self.socket.close()
             sys.exit()
 
     def __listen_to_server(self):
-        print('Client is ready to receive')
+        print('clis_s')
         while 1:
             try:
-                # d - data that client receives
-                d = self.socket.recv(4096)
-                d = pickle.loads(d)
-                print(d)
+                # receive data
+                data = self.socket.recv(config.BUFF_SIZE)
+                data = pickle.loads(data)
+                print(data)
+                # update local peers
+                self.peers = data['peers']
+
+                # if there's not only peers that came from server:
+                if len(data) > 1:
+                    new_chain = data['blockchain']['chain']
+                    new_pending_transactions = data['blockchain']['pending_transactions']
+                    # if new chain is valid
+                    if self.blockchain.is_valid(new_chain):
+                        # replace local chain and pending transactions
+                        self.blockchain.replace_chain(new_chain)
+                        self.blockchain.pending_transactions = new_pending_transactions
             except KeyboardInterrupt:
                 self.socket.close()
                 sys.exit()
@@ -69,21 +85,20 @@ class Client:
                 print('Connection reset. Press [ Enter ] to continue.')
                 break
 
-    def sync_peers(self):
-        """
-        Update local peers by ones received from server = synchronize
-        """
-        print('Syncing peers...')
-        d = self.socket.recv(config.BUFF_SIZE)
-        d = pickle.loads(d)
-        self.peers.update(d)
-        print(f'synced{self.peers}')
-
-    def send(self, data_to_send):
+    def send(self):
         """
         Send data to the server
         """
-        self.socket.send(bytes(data_to_send, 'utf-8'))
+        # data is sent in such protocol: peers & blockchain
+        data = {
+            'peers': self.peers,
+            'blockchain': {
+                'chain': self.blockchain.chain,
+                'pending_transactions': self.blockchain.pending_transactions
+            }
+        }
+        data = pickle.dumps(data)
+        self.socket.send(data) # self.socket.send(bytes(data_to_send, 'utf-8'))
 
     def close_connection(self):
         self.socket.close()
@@ -96,12 +111,16 @@ class Peer(Client):
 
     def __init__(self):
         super().__init__()
-        self.blockchain: Blockchain
 
     def reset_connection(self):
         """
         Reset peer connection - reinitialize.
         """
-        data = (self.peers,)
+        # save data from client
+        peers = self.peers
+        blockchain = self.blockchain
+        # reset client
         super().__init__()
-        self.peers = data[0]
+        # load data to client
+        self.peers = peers
+        self.blockchain = blockchain

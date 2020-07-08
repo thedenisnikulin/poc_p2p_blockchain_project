@@ -49,7 +49,7 @@ class Server:
             self.connections.append(conn)
             self.peers.add(address)
             # send list of peers to every client
-            self.broadcast(self.peers)
+            self.broadcast({'peers': self.peers})
             print(f'Peer connected: {address}')
             listening_thread = threading.Thread(target=self.__listen_to_peer, args=(conn, address))
             listening_thread.daemon = True
@@ -65,7 +65,7 @@ class Server:
         while 1:
             try:
                 msg = conn.recv(config.BUFF_SIZE)
-                self.broadcast(msg.decode())
+                self.broadcast(msg)
             except KeyboardInterrupt:
                 self.socket.close()
                 sys.exit()
@@ -74,12 +74,24 @@ class Server:
                 self.peers.remove(address)
                 break
 
+    # def send(self):
+    #     data = {
+    #         'peers': self.peers,
+    #         'blockchain': {
+    #             'chain': [b.serialized for b in self.blockchain.chain],
+    #             'pending_transactions': [t.serialized for t in self.blockchain.pending_transactions]
+    #         }
+    #     }
+    #     data = pickle.dumps(data)
+    #     self.send(data)
+
     def broadcast(self, data):
         """
         Send some data to client
         :param data: Data that needs to be sent
         """
-        print(f'data to send: {data}')
+        if type(data) is bytes:
+            data = pickle.loads(data)
         d = pickle.dumps(data)
         for conn in self.connections:
             conn.send(d)
