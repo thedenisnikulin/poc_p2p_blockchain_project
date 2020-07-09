@@ -51,13 +51,18 @@ def use_blockchain(blockchain: Blockchain, current_address: Tuple[str, int], pee
             recipient = answer['transaction'].split(', ')
             recipient = recipient[0][2: -1], int(recipient[1][0: -1])
             answer = prompt(questions['amount'])
-            t = Transaction(current_address, recipient, int(answer['amount']))
-            blockchain.new_transaction(t)
+            if int(answer['amount']) == 0:
+                print('You can\'t send 0 coins')
+            elif blockchain.get_balance(current_address) >= int(answer['amount']):
+                t = Transaction(current_address, recipient, int(answer['amount']))
+                blockchain.new_transaction(t)
+            else:
+                print('Not enough coins :(')
             input('\nPress [ Enter ] to continue')
             clearconsole()
         except IndexError:
             # This error raises when we get empty set
-            print('No connected peers :(')
+            print('No peers in the network :(')
             input('\nPress [ Enter ] to continue')
             clearconsole()
     # MINE BLOCK
