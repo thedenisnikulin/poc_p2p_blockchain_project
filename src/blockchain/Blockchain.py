@@ -1,5 +1,6 @@
 from typing import List, Tuple, Set
 # local
+import config
 from Block import Block
 from Transaction import Transaction
 
@@ -8,7 +9,7 @@ class Blockchain:
     def __init__(self):
         self.chain = []
         self.pending_transactions = []
-        self.difficulty = 4
+        self.difficulty = config.BLOCKCHAIN_DIFFICULTY
 
     def generate_genesis_block(self):
         # add genesis block
@@ -17,10 +18,9 @@ class Blockchain:
             genesis = Block([], 'genesis')
             genesis.mine(self.difficulty)
             self.chain.append(genesis.serialized)
-        else:
-            raise Exception('Tried to generate genesis block when it is not necessary')
 
     def is_valid(self, chain_to_validate: List = None) -> bool:
+        # if no chain in params, use self.chain. Else use chain in params.
         chain = self.chain if chain_to_validate is None else chain_to_validate
         for index in range(1, len(chain)):
             current_block = chain[index]
@@ -29,13 +29,18 @@ class Blockchain:
                 return False
         return True
 
-    def add_block(self):
+    def add_block(self, miner_address):
+        # We reward those who mine with 1 coin, so we append a new transaction with this reward
+        self.pending_transactions.append(Transaction('blockchain', miner_address, 1).serialized) # from blockchain, to miner, 1 coin
+        # construct a new block
         new_block = Block(
             self.pending_transactions,
             self.chain[-1]['hash']
         )
         print(f'Mining block #{len(self.chain)}...')
+        # mine it
         new_block.mine(self.difficulty)
+        # and append to chain, cleaning the pending transaction ('cos we've already written them in the block)
         self.chain.append(new_block.serialized)
         self.pending_transactions = []
 
@@ -43,19 +48,20 @@ class Blockchain:
         self.pending_transactions.append(transaction.serialized)
 
     def replace_chain(self, new_chain: List):
+        # if new chain is bigger, replace current with the new one
         if len(new_chain) > len(self.chain):
             self.chain = new_chain
-            return
-        else:
-            print('Cannot replace chain: new chain is less than current.')
 
     def get_balance(self, address):
+        """
+        Iterate through chain and find transactions where provided address appears.
+        """
         balance = 0
         for block in self.chain:
             for t in block['transactions']:
                 if t['recipient'] == address:
                     balance += t['amount']
-                elif t['sender']:
+                elif t['sender'] == address:
                     balance -= t['amount']
         return balance
 

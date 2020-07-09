@@ -5,7 +5,6 @@ import pickle
 from typing import List, Set, Tuple
 # local
 from client import Client
-from blockchain.Blockchain import Blockchain
 import config
 
 
@@ -19,22 +18,19 @@ class Server:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # allow connecting to recently closed addresses
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # server's address
         self.address = ()
 
     def connect(self, address: Tuple[str, int]):
-        print('Connecting server...')
-        # bind host and port to server and listen
-        self.address = address  # get_current_ip_address()
-        # self.address = Server.get_address()
+        # address in this format: ('127.0.0.1', 1234)
+        self.address = address
+        # bind address to server and listen
         self.socket.bind(self.address)
         self.socket.listen(5)
+        # write address to server_tracker.txt
         self.set_address(self.address)
-        self.peers.add(self.address)
-
-        # address in this format: ('127.0.0.1', 1234)
         # add server's address to peers
-        print('Role: Server')
-        print(f'Running on {self.address}')
+        self.peers.add(self.address)
 
     def run(self):
         """
@@ -42,48 +38,36 @@ class Server:
         listening to peers to receive some data
         """
         while 1:
-            print('Running server...')
+            # accept client connection
             conn, address = self.socket.accept()
-            print('Server: got client')
-            # add client to connections and peers
+            # add client to connections list and peers list
             self.connections.append(conn)
             self.peers.add(address)
             # send list of peers to every client
             self.broadcast({'peers': self.peers})
-            print(f'Peer connected: {address}')
+            # listen to peer in parallel
             listening_thread = threading.Thread(target=self.__listen_to_peer, args=(conn, address))
             listening_thread.daemon = True
             listening_thread.start()
 
     def __listen_to_peer(self, conn: socket.socket, address: int):
         """
-        Receive data from peers
-        :param conn: connection that comes from socket.accept() (when client connected)
+        Receive data from peers and broadcast it to every peer in the network
+        :param conn: connection that comes from socket.accept() (when client connects)
         :param address: address that comes from socket.accept()
         """
-        print('Server: Listening to client...')
         while 1:
             try:
                 msg = conn.recv(config.BUFF_SIZE)
+                # send received message to every client
                 self.broadcast(msg)
             except KeyboardInterrupt:
                 self.socket.close()
                 sys.exit()
             except ConnectionResetError:
-                print(f'Peer disconnected: {address}')
+                # when peer disconnects, remove it from peers
                 self.peers.remove(address)
                 break
-
-    # def send(self):
-    #     data = {
-    #         'peers': self.peers,
-    #         'blockchain': {
-    #             'chain': [b.serialized for b in self.blockchain.chain],
-    #             'pending_transactions': [t.serialized for t in self.blockchain.pending_transactions]
-    #         }
-    #     }
-    #     data = pickle.dumps(data)
-    #     self.send(data)
 
     def broadcast(self, data):
         """
@@ -107,7 +91,6 @@ class Server:
         """
         with open('./server_tracker.txt', 'r') as file:
             addr = file.readline().split(' ')
-            print(f'FROM GET {(addr[0], int(addr[1]))}')
             if len(addr) != 2:
                 raise Exception('No address found in server_tracker.txt.')
             return addr[0], int(addr[1])
@@ -124,7 +107,7 @@ class Server:
 
 class SuperPeer:
     """
-    Server + client. Manages connections.
+    A super Peer - server + client. Manages connections.
     """
     def __init__(self):
         self.server = Server()
@@ -137,7 +120,7 @@ class SuperPeer:
 
 def get_current_ip_address() -> Tuple[str, int]:
     """
-    These weird socket manipulations are just to get current address of the running process
+    These weird socket manipulations are just to get current address of the current socket
     :return: address
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

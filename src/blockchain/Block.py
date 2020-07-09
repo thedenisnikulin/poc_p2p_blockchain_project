@@ -1,10 +1,6 @@
-import sys
-import json
 from hashlib import sha256
 from datetime import datetime
 from typing import List
-# local
-from Transaction import Transaction
 
 
 class Block:
@@ -29,7 +25,8 @@ class Block:
             (str(self.transactions) + self.previous_hash + str(self.timestamp) + str(self.nonce)).encode()).hexdigest()
 
     def mine(self, difficulty: int):
+        # generate amount of zeros based on difficulty
         zeros = ''.join(['0' for o in range(0, difficulty)])
+        # increment nonce until first symbols of hash are not zeros
         while self.get_hash()[0: difficulty] != zeros:
             self.nonce += 1
-        print('\n')
