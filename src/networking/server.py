@@ -4,8 +4,8 @@ import threading
 import pickle
 from typing import List, Set, Tuple
 # local
-from client import Client
-import config
+from networking.client import Client
+from networking import config
 
 
 class Server:
@@ -65,8 +65,10 @@ class Server:
                 self.socket.close()
                 sys.exit()
             except ConnectionResetError:
-                # when peer disconnects, remove it from peers
+                # when peer disconnects, remove it from peers and connections
                 self.peers.remove(address)
+                self.connections.remove(conn)
+                self.broadcast({'peers': self.peers})
                 break
 
     def broadcast(self, data):

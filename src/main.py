@@ -2,8 +2,8 @@ import sys
 import threading
 # local
 from blockchain.Blockchain import Blockchain
-from server import SuperPeer, Server, get_current_ip_address
-from client import Peer
+from networking.server import SuperPeer, Server, get_current_ip_address
+from networking.client import Peer
 
 
 def main():

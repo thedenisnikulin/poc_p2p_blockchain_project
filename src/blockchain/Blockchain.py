@@ -1,8 +1,8 @@
 from typing import List, Tuple, Set
 # local
-import config
-from Block import Block
-from Transaction import Transaction
+from networking import config
+from blockchain.Block import Block
+from blockchain.Transaction import Transaction
 
 
 class Blockchain:

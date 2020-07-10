@@ -3,8 +3,8 @@ import os
 from typing import Tuple, Set
 from PyInquirer import prompt
 # local
-from Blockchain import Blockchain
-from Transaction import Transaction
+from blockchain.Blockchain import Blockchain
+from blockchain.Transaction import Transaction
 
 
 def use_blockchain(blockchain: Blockchain, current_address: Tuple[str, int], peers: Set[Tuple[str, int]]):
@@ -32,11 +32,16 @@ def use_blockchain(blockchain: Blockchain, current_address: Tuple[str, int], pee
     print(f'\nAddress: {current_address}')
     print(f'Balance: {blockchain.get_balance(current_address)}')
     answer = prompt(questions['main'])
+    # REFRESH
     if answer['main'] == 'Refresh':
         clearconsole()
         return
+    # SHOW PEERS
     elif answer['main'] == 'Show peers':
-        [print(str(p)) for p in peers]
+        if len(peers) == 0:
+            print('No peers in the network :(')
+        else:
+            [print(str(p)) for p in peers]
         input('\nPress [ Enter ] to continue')
         clearconsole()
     # GET CHAIN

@@ -4,7 +4,7 @@ import pickle
 import threading
 from typing import Set, Tuple
 # local
-import config
+from networking import config
 from blockchain.Blockchain import Blockchain
 from blockchain.cli_interface import use_blockchain, clearconsole
 
