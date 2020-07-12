@@ -23,6 +23,16 @@ I like the idea of bitcoin and blockchain. This is a basic proof-of-concept bloc
 ---
 
 # Description
+***Class structure***
+* Blockchain
+* Block
+* Transaction
+* Server
+* Client
+* SuperPeer
+* Peer
+
+
 ***The P2P network is based on `Client` and `Server` classes.***  
 - Server:
 1. waits for client to connect, 
@@ -46,7 +56,7 @@ I like the idea of bitcoin and blockchain. This is a basic proof-of-concept bloc
 3. if connection is established successfully, it remains Peer
 4. if it can't connect to the SuperPeer for some reason (most likely there's no SuperPeer to connect to), it becomes a SuperPeer itself and stores its address in `server_tracker.txt` for other peers to connect  
 
-***If something is not clear for you, check out the source code. I tried to write a lot of comments because it isn't easy to understand.***
+***If something is not clear for you, check out the source code. I tried to write as much comments as possible to make it easier to understand.***
 
 ---
 
