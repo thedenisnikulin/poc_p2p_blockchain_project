@@ -7,13 +7,12 @@ from typing import List, Set, Tuple
 from networking.client import Client
 from networking import config
 
-
 class Server:
-    def __init__(self):
+    def __init__(self):     # TODO make some fields private
         # connections - clients connected to the server
         self.connections: List[socket.socket] = []
         # peers - addresses of each peer in the network
-        self.peers: Set = set()
+        self.peers = []
         # initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # allow connecting to recently closed addresses
@@ -21,16 +20,16 @@ class Server:
         # server's address
         self.address = ()
 
-    def connect(self, address: Tuple[str, int]):
-        # address in this format: ('127.0.0.1', 1234)
-        self.address = address
+    def listen(self, address: Tuple[str, int]): 
         # bind address to server and listen
-        self.socket.bind(self.address)
+        self.socket.bind(address)
         self.socket.listen(5)
+        # set socket address
+        self.address = self.socket.getsockname()
         # write address to server_tracker.txt
-        self.set_address(self.address)
-        # add server's address to peers
-        self.peers.add(self.address)
+        self.write_address(self.address)
+        # add server address to peers
+        self.peers.append(self.address)
 
     def run(self):
         """
@@ -42,7 +41,7 @@ class Server:
             conn, address = self.socket.accept()
             # add client to connections list and peers list
             self.connections.append(conn)
-            self.peers.add(address)
+            self.peers.append(address)
             # send list of peers to every client
             self.broadcast({'peers': self.peers})
             # listen to peer in parallel
@@ -52,7 +51,7 @@ class Server:
 
     def __listen_to_peer(self, conn: socket.socket, address: int):
         """
-        Receive data from peers and broadcast it to every peer in the network
+        Receive data from a peer and broadcast it to every peer in the network
         :param conn: connection that comes from socket.accept() (when client connects)
         :param address: address that comes from socket.accept()
         """
@@ -62,12 +61,13 @@ class Server:
                 # send received message to every client
                 self.broadcast(msg)
             except KeyboardInterrupt:
-                self.socket.close()
+                self.close()
                 sys.exit()
             except ConnectionResetError:
                 # when peer disconnects, remove it from peers and connections
                 self.peers.remove(address)
                 self.connections.remove(conn)
+                # send updated list of peers
                 self.broadcast({'peers': self.peers})
                 break
 
@@ -86,10 +86,10 @@ class Server:
         self.socket.close()
 
     @staticmethod
-    def get_address():
+    def read_address():
         """
-        Reads server address from ./networking/server_tracker.txt
-        :return: server's address, Tuple[str, int]
+        Reads server address from ./src/server_tracker.txt
+        :return: server address, Tuple[str, int]
         """
         with open('./server_tracker.txt', 'r') as file:
             addr = file.readline().split(' ')
@@ -98,7 +98,7 @@ class Server:
             return addr[0], int(addr[1])
 
     @staticmethod
-    def set_address(addr: Tuple[str, int]):
+    def write_address(addr: Tuple[str, int]):
         """
         Writes server address to ./networking/server_tracker.txt
         :param addr: address to write, Tuple[str, int]
@@ -119,20 +119,3 @@ class SuperPeer:
         self.client.socket.close()
         self.server.close()
 
-
-def get_current_ip_address() -> Tuple[str, int]:
-    """
-    These weird socket manipulations are just to get current address of the current socket
-    :return: address
-    """
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    c.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((socket.gethostname(), 9865))
-    s.listen()
-    c.connect((socket.gethostname(), 9865))
-    try:
-        return c.getsockname()
-    finally:
-        s.close()
-        c.close()

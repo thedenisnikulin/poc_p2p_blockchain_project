@@ -12,14 +12,14 @@ from blockchain.cli_interface import use_blockchain, clearconsole
 class Client:
     def __init__(self):
         # peers - addresses of each peer in the network
-        self.peers: Set = set()
+        self.peers = set()
         # initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # allow connecting to recently closed addresses
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # addresses in such format: ("1.1.1.1", 1111)
         self.address: Tuple[str, int] = ()
-        self.server_address = ()
+        self.server_address: Tuple[str, int] = ()
         # initialize blockchain
         self.blockchain = Blockchain()
 
@@ -61,43 +61,52 @@ class Client:
                 self.send()
         # exit from the loop
         except KeyboardInterrupt:
-            self.close_connection()
+            print("it was raised") # TODO fix program is not terminated
+            self.close()
             sys.exit()
 
     def __listen_to_server(self):
         while 1:
+            # receive data - peers list and blockchain instance
             try:
-                # receive data - peers list and blockchain instance
                 data = self.socket.recv(config.BUFF_SIZE)
-                data = pickle.loads(data)
-                # update local peers
-                self.peers = data['peers']
-
-                # if there's not only peers that came from server:
-                if len(data) > 1:
-                    new_chain = data['blockchain']['chain']
-                    new_pending_transactions = data['blockchain']['pending_transactions']
-                    # and if new chain is valid
-                    if self.blockchain.is_valid(new_chain):
-                        # replace local chain and pending transactions with new ones
-                        self.blockchain.replace_chain(new_chain)
-                        self.blockchain.pending_transactions = new_pending_transactions
-            except KeyboardInterrupt:
-                self.socket.close()
-                sys.exit()
             except ConnectionResetError:
                 # Happens when server disconnects. Hit Enter and it will break the loop
                 clearconsole()
                 print('Connection reset. Press [ Enter ] to reconnect.')
                 break
+            except KeyboardInterrupt:
+                self.socket.close()
+                sys.exit()
+            
+            try:
+                data = pickle.loads(data)
+            except EOFError:
+                # Happens when server disconnects. Hit Enter and it will break the loop
+                clearconsole()
+                print('Connection reset. Press [ Enter ] to reconnect.')
+                break
+            # update local peers
+            self.peers = data['peers']
+
+            # if there's also a blockchain that came from server:
+            if len(data) > 1:
+                new_chain = data['blockchain']['chain']
+                new_pending_transactions = data['blockchain']['pending_transactions']
+                # and if new chain is valid
+                if self.blockchain.is_valid(new_chain):
+                    # replace local chain and pending transactions with new ones
+                    self.blockchain.replace_chain(new_chain)
+                    self.blockchain.pending_transactions = new_pending_transactions
+
 
     def send(self):
         """
         Send data to the server
         """
-        # data is sent in such format (protocol):
-        # peers - list of local peers &
-        # blockchain - its chain and pending transactions
+        # data to send:
+        # peers - list of local peers
+        # blockchain - the chain itself and pending transactions
         data = {
             'peers': self.peers,
             'blockchain': {
@@ -108,7 +117,7 @@ class Client:
         data = pickle.dumps(data)
         self.socket.send(data)
 
-    def close_connection(self):
+    def close(self):
         self.socket.close()
 
 
@@ -123,13 +132,13 @@ class Peer(Client):
         """
         Reset peer connection - reinitialize it.
         """
-        # save data from client
+        # save data
         addr = self.address
         peers = self.peers
         blockchain = self.blockchain
         # reset client
         super().__init__()
-        # load data to client
+        # load data
         self.socket.bind(addr)
         self.peers = peers
         self.blockchain.chain = blockchain.chain

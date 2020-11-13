@@ -66,7 +66,7 @@ def use_blockchain(blockchain: Blockchain, current_address: Tuple[str, int], pee
             input('\nPress [ Enter ] to continue')
             clearconsole()
         except IndexError:
-            # This error raises when we get empty set
+            # This error raises when we get an empty set of peers
             print('No peers in the network :(')
             input('\nPress [ Enter ] to continue')
             clearconsole()
@@ -76,7 +76,8 @@ def use_blockchain(blockchain: Blockchain, current_address: Tuple[str, int], pee
         clearconsole()
     # QUIT
     elif answer['main'] == 'Quit':
-        sys.exit()
+        # Catch and handle this exception out of this function
+        raise KeyboardInterrupt
 
 
 def clearconsole():

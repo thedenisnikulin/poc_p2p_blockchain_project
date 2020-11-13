@@ -38,12 +38,12 @@ I like the idea of bitcoin and blockchain. This is a basic proof-of-concept bloc
 1. waits for client to connect, 
 2. accepts connection, 
 3. adds client to list of clients (= list of peers), 
-4. broadcast this list to all the clients (let clients know about new client),
+4. broadcasts the list to all the clients (lets clients know about new client),
 5. listens to client messages  
 - Client:
 1. connects to the server
-2. let user interact with program logic (i.e. blockchain)
-3. listens to server messages  
+2. lets user interact with the program logic (i.e. blockchain and networking)
+3. listens to server messages
 
 ***The core logic lies in two concepts: Peer and SuperPeer***  
 
