@@ -12,7 +12,7 @@
 
 
 I like the idea of bitcoin and blockchain. This is a basic proof-of-concept blockchain that I've built. It is based on a peer-to-peer decentralized TCP network.
-
+> **Warning!** It is working only on Windows for now.
 
 # Table of contents
 1. [Description](#description)
