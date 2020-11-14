@@ -54,10 +54,10 @@ def use_blockchain(blockchain: Blockchain, current_address: Tuple[str, int], pee
         try:
             answer = prompt(questions['transaction'])
             recipient = answer['transaction'].split(', ')
-            recipient = recipient[0][2: -1], int(recipient[1][0: -1])
+            recipient = (recipient[0][2: -1], int(recipient[1][0: -1]))
             answer = prompt(questions['amount'])
-            if int(answer['amount']) == 0:
-                print('You can\'t send 0 coins')
+            if int(answer['amount']) < 1:
+                print(f"You can\'t send {answer['amount']} coins")
             elif blockchain.get_balance(current_address) >= int(answer['amount']):
                 t = Transaction(current_address, recipient, int(answer['amount']))
                 blockchain.new_transaction(t)
