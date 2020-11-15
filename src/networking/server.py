@@ -9,26 +9,26 @@ from networking import config
 
 class Server:
 	def __init__(self):     # TODO make some fields private
-		# connections - clients connected to the server
+		# Connections - clients connected to the server.
 		self.connections: List[socket.socket] = []
-		# peers - addresses of each peer in the network
+		# Peers - addresses of each peer in the network.
 		self.peers = []
-		# initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP
+		# Initialize socket - AF_INET means IPv4, SOCK_STREAM means TCP.
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		# allow connecting to recently closed addresses
+		# Allow connecting to recently closed addresses.
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		# server's address
+		# Server address.
 		self.address = ()
 
 	def listen(self, address: Tuple[str, int]): 
-		# bind address to server and listen
+		# Bind address to server and listen.
 		self.socket.bind(address)
 		self.socket.listen()
-		# set socket address
+		# Set socket address.
 		self.address = self.socket.getsockname()
-		# write address to server_tracker.txt
+		# Write address to server_tracker.txt.
 		self.write_address("./server_tracker.txt", self.address)
-		# add server address to peers
+		# Add server address to peers.
 		self.peers.append(self.address)
 
 	def run(self):
@@ -37,17 +37,18 @@ class Server:
 		listening to peers to receive some data
 		"""
 		while 1:
-			# accept client connection
+			# Accept client connection.
 			try:
 				(conn, address) = self.socket.accept()
 			except KeyboardInterrupt:
-				pass
-			# add client to connections list and peers list
+				self.close()
+				sys.exit()
+			# Add client to connections list and peers list.
 			self.connections.append(conn)
 			self.peers.append(address)
-			# send list of peers to every client
+			# Send list of peers to every client.
 			self.broadcast({'peers': self.peers})
-			# listen to peer in parallel
+			# Listen to peer in parallel.
 			listening_thread = threading.Thread(target=self.__listen_to_peer, args=(conn, address))
 			listening_thread.daemon = True
 			listening_thread.start()
@@ -61,18 +62,18 @@ class Server:
 		while 1:
 			try:
 				msg = conn.recv(config.BUFF_SIZE)
-				# send received message to every client
+				# Send received message to every client.
 				self.broadcast(msg)
 			except KeyboardInterrupt:
 				self.close()
 				sys.exit()
 			except (EOFError, ConnectionResetError):
-				# EOFError: when pickle runs out of input
-				# ConnectionResetError: when connection to client is lost
-				# when peer disconnects, remove it from peers and connections
+				# EOFError: when pickle runs out of input.
+				# ConnectionResetError: when connection to client is lost.
+				# When peer disconnects, remove it from peers and connections.
 				self.peers.remove(address)
 				self.connections.remove(conn)
-				# send updated list of peers
+				# Send updated list of peers.
 				self.broadcast({'peers': self.peers})
 				break
 
@@ -116,12 +117,13 @@ class Server:
 
 class SuperPeer:
 	"""
-	A super Peer - server + client. Manages connections.
+	SuperPeer: server + client.
+	Manages connections.
 	"""
 	def __init__(self):
 		self.server = Server()
 		self.client = Client()
 
 	def close_connections(self):
-		self.client.socket.close()
+		self.client.close()
 		self.server.close()

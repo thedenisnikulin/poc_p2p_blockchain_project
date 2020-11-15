@@ -25,7 +25,7 @@ class Client:
 
 	def connect_and_run(self, server_address: Tuple[str, int]):
 		"""
-		Connect to server.
+		Connect to server, run listening to server, run listening to user input.
 		:param server_address: address to connect to
 		"""
 		# connect to server
@@ -33,7 +33,6 @@ class Client:
 		# set addresses
 		self.address = self.socket.getsockname()
 		self.server_address = self.socket.getpeername()
-		print(f"server address in peer.connect: {self.server_address}")
 		# add current client to local peers
 		self.peers.add(self.address)
 		# generate genesis block
@@ -46,16 +45,17 @@ class Client:
 
 	def __listen_to_user_input(self):
 		"""
-		Listen to user input through use_blockchain
+		Listen to user input with use_blockchain function.
 		"""
 		while 1:
-			clean_peers = set([p for p in self.peers
+			# List of peers without server address and current peer address.
+			filtered_peers = set([p for p in self.peers
 				if p != self.address and p != self.server_address])
 			try:
 				use_blockchain(
 					self.blockchain,
 					self.address,
-					clean_peers
+					filtered_peers
 				)
 				# send peers and blockchain
 				self.send_data()
@@ -66,11 +66,11 @@ class Client:
 
 	def __listen_to_server(self):
 		while 1:
-			# receive data - peers list and blockchain instance
+			# Receive data, i.e. peers list and blockchain instance.
 			try:
 				data = self.socket.recv(config.BUFF_SIZE)
 			except ConnectionResetError:
-				# Happens when server disconnects. Hit Enter and it will break the loop
+				# Happens when server disconnects. Hit Enter and it will break the loop.
 				clearconsole()
 				print('Connection reset. Press [ Enter ] to reconnect.')
 				break
@@ -123,14 +123,15 @@ class Client:
 
 class Peer(Client):
 	"""
-	A classic peer - only client.
+	A classic peer: only client.
 	"""
 	def __init__(self):
 		super().__init__()
 
-	def reset_connection(self):
+	def reinit(self):
 		"""
-		Reset peer connection - reinitialize it.
+		Reinitialize peer.
+		:return: address and blockchain
 		"""
 		# save data
 		addr = self.address
